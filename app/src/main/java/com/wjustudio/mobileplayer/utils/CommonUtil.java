@@ -31,6 +31,8 @@ import java.util.regex.Pattern;
  */
 public class CommonUtil {
     public static final String TAG = "commonUtil";
+    public static final String HEIGHT = "height";
+    public static final String WIDTH = "width";
 
     /**
      * 在主线程执行任务,该方法在fragment中也可以使用.
@@ -217,8 +219,8 @@ public class CommonUtil {
         int height = metrics.heightPixels;
         height -= getStatusBarHeight(activity);
         HashMap<String, Integer> windowSize = new HashMap<>();
-        windowSize.put("height", height);
-        windowSize.put("width", width);
+        windowSize.put(CommonUtil.HEIGHT, height);
+        windowSize.put(CommonUtil.WIDTH, width);
         return windowSize;
     }
 
