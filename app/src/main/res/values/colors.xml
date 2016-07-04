@@ -13,4 +13,5 @@
     <color name="light_white">#eeffffff</color>
     <color name="green">#2FB477</color>
     <color name="half_white">#66ffffff</color>
+    <color name="list_press">#44FFFFFF</color>
 </resources>

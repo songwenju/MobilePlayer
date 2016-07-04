@@ -11,7 +11,6 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.wjustudio.mobileplayer.R;
-import com.wjustudio.mobileplayer.utils.LogUtil;
 import com.wjustudio.mobileplayer.utils.ToastUtil;
 
 /**
@@ -39,8 +38,6 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnCl
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LogUtil.d(this, "BaseActivity-->onCreate()");
-
         if (mAllowFullScreen) {
             requestWindowFeature(Window.FEATURE_NO_TITLE);
         }

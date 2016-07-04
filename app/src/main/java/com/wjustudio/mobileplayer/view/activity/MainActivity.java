@@ -81,6 +81,8 @@ public class MainActivity extends BaseActivity {
         mIndicateLine.getLayoutParams().width = width / 2;
         mIndicateLine.requestLayout();
 
+        mTvAudio.setOnClickListener(this);
+        mTvVideo.setOnClickListener(this);
     }
 
     @Override
@@ -92,7 +94,14 @@ public class MainActivity extends BaseActivity {
 
     @Override
     public void onProcessClick(View v) {
-
+        switch (v.getId()){
+            case R.id.main_tv_video:
+                mMainViewPager.setCurrentItem(0);
+                break;
+            case R.id.main_tv_audio:
+                mMainViewPager.setCurrentItem(1);
+                break;
+        }
     }
 
     /**
