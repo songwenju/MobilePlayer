@@ -21,6 +21,10 @@
             </intent-filter>
         </activity>
         <activity android:name=".view.activity.MainActivity"/>
+        <activity
+            android:name=".view.activity.VideoPlayerActivity"
+            android:screenOrientation="landscape"
+            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"/>
     </application>
 
 </manifest>

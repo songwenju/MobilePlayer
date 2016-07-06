@@ -23,6 +23,19 @@ import com.wjustudio.mobileplayer.view.adapter.VideoListAdapter;
  */
 public class VideoListFragment extends BaseFragment {
 
+    private class MyOnItemClickListener implements OnItemClickListener {
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long l) {
+            //获得被点击的条目
+            Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+            Video video = Video.instanceFromCursor(cursor);
+            //跳转到播放界面
+            Intent intent = new Intent(mContext,VideoPlayerActivity.class);
+            intent.putExtra("video",video);
+            startActivity(intent);
+        }
+    }
+
     private ListView mVideoListView;
     private VideoListAdapter mVideoListAdapter;
 
@@ -67,16 +80,5 @@ public class VideoListFragment extends BaseFragment {
 
     }
 
-    private class MyOnItemClickListener implements OnItemClickListener {
-        @Override
-        public void onItemClick(AdapterView<?> parent, View view, int position, long l) {
-            //获得被点击的条目
-            Cursor cursor = (Cursor) parent.getItemAtPosition(position);
-            Video video = Video.instanceFromCursor(cursor);
-            //跳转到播放界面
-            Intent intent = new Intent(mContext,VideoPlayerActivity.class);
-            intent.putExtra("video",video);
-            startActivity(intent);
-        }
-    }
+
 }

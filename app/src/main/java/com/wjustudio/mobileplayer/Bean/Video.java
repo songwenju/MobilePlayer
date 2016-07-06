@@ -34,4 +34,14 @@ public class Video implements Serializable{
         return video;
 
     }
+
+    @Override
+    public String toString() {
+        return "Video{" +
+                "name='" + name + '\'' +
+                ", path='" + path + '\'' +
+                ", size=" + size +
+                ", duration=" + duration +
+                '}';
+    }
 }
