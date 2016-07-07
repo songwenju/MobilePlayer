@@ -31,8 +31,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnCl
     /**
      * 是否禁止旋转屏幕
      **/
-    private boolean isAllowScreenRotate = false;
-
+    private boolean isAllowScreenRotate = true;
     protected Context mContext;
 
     @Override

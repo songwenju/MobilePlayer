@@ -3,6 +3,7 @@
           package="com.wjustudio.mobileplayer">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.CHANGE_CONFIGURATION"/>
 
     <application
         android:name=".appBase.BaseApplication"
@@ -16,13 +17,15 @@
             android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
-
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".view.activity.MainActivity"/>
+        <activity
+            android:name=".view.activity.MainActivity"
+            android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"/>
         <activity
             android:name=".view.activity.VideoPlayerActivity"
+            android:configChanges="orientation|keyboardHidden"
             android:screenOrientation="landscape"
             android:theme="@android:style/Theme.Light.NoTitleBar.Fullscreen"/>
     </application>

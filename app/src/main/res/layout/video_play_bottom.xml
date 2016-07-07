@@ -47,30 +47,39 @@
         android:gravity="center_vertical">
 
         <ImageView
+            android:id="@+id/iv_video_exit"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:clickable="true"
             android:src="@drawable/btn_exit_selector"/>
 
         <ImageView
+            android:id="@+id/iv_video_pre"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:clickable="true"
             android:src="@drawable/btn_pre_selector"/>
 
         <ImageView
+            android:id="@+id/iv_video_pause"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:clickable="true"
             android:src="@drawable/btn_pause_selector"/>
 
         <ImageView
+            android:id="@+id/iv_video_next"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:clickable="true"
             android:src="@drawable/btn_next_selector"/>
 
         <ImageView
+            android:id="@+id/iv_video_full_screen"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
