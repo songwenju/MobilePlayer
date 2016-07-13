@@ -3,6 +3,7 @@ package com.wjustudio.mobileplayer.view.fragment;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
+import android.os.Bundle;
 import android.provider.MediaStore.Video.Media;
 import android.view.View;
 import android.widget.AdapterView;
@@ -17,6 +18,8 @@ import com.wjustudio.mobileplayer.utils.LogUtil;
 import com.wjustudio.mobileplayer.view.activity.VideoPlayerActivity;
 import com.wjustudio.mobileplayer.view.adapter.VideoListAdapter;
 
+import java.util.ArrayList;
+
 /**
  * 作者： songwenju on 2016/6/27 08:28.
  * 邮箱： songwenju@outlook.com
@@ -28,10 +31,15 @@ public class VideoListFragment extends BaseFragment {
         public void onItemClick(AdapterView<?> parent, View view, int position, long l) {
             //获得被点击的条目
             Cursor cursor = (Cursor) parent.getItemAtPosition(position);
-            Video video = Video.instanceFromCursor(cursor);
+            //Video video = Video.instanceFromCursor(cursor);
+            ArrayList<Video> videoList = Video.getVideoList(cursor);
             //跳转到播放界面
             Intent intent = new Intent(mContext,VideoPlayerActivity.class);
-            intent.putExtra("video",video);
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("videoList",videoList);
+            bundle.putInt("position",position);
+            intent.putExtras(bundle);
+            LogUtil.i("VideoListFragment","videoArrayList.1:"+videoList.get(0));
             startActivity(intent);
         }
     }

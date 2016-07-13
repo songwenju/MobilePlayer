@@ -9,18 +9,14 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.IntentFilter;
 import android.content.res.Resources;
-import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.text.TextUtils;
-import android.util.DisplayMetrics;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 
 import com.wjustudio.mobileplayer.appBase.BaseApplication;
 
 import java.security.MessageDigest;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,8 +27,6 @@ import java.util.regex.Pattern;
  */
 public class CommonUtil {
     public static final String TAG = "commonUtil";
-    public static final String HEIGHT = "height";
-    public static final String WIDTH = "width";
 
     /**
      * 在主线程执行任务,该方法在fragment中也可以使用.
@@ -205,56 +199,7 @@ public class CommonUtil {
         return (int) (pxValue / scale + 0.5f);
     }
 
-    /**
-     * 获得宽度和除去通知栏的屏幕的高度
-     *
-     * @param activity
-     * @return
-     */
-    public static HashMap<String, Integer> getWindowSize(Activity activity) {
-        WindowManager wm = activity.getWindowManager();
-        DisplayMetrics metrics = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(metrics);
-        int width = metrics.widthPixels;
-        int height = metrics.heightPixels;
-        height -= getStatusBarHeight(activity);
-        HashMap<String, Integer> windowSize = new HashMap<>();
-        windowSize.put(CommonUtil.HEIGHT, height);
-        windowSize.put(CommonUtil.WIDTH, width);
-        return windowSize;
-    }
 
-    /**
-     * 获得状态栏的高度
-     *
-     * @param activity
-     * @return
-     */
-    public static int getStatusBarHeight(Activity activity) {
-        int statusHeight = 0;
-        Rect frame = new Rect();
-        activity.getWindow().getDecorView().getWindowVisibleDisplayFrame(frame);
-        statusHeight = frame.top;
-        if (0 == statusHeight) {
-            Class<?> localClass;
-            try {
-                localClass = Class.forName("com.android.internal.R$dimen");
-                Object localObject = localClass.newInstance();
-                int i5 = Integer.parseInt(localClass.getField("status_bar_height").
-                        get(localObject).toString());
-                statusHeight = activity.getResources().getDimensionPixelSize(i5);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (NoSuchFieldException e) {
-                e.printStackTrace();
-            }
-        }
-        return statusHeight;
-    }
 
     /**
      * 手机号验证

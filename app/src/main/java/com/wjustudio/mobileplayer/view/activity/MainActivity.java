@@ -10,6 +10,7 @@ import com.nineoldandroids.view.ViewPropertyAnimator;
 import com.wjustudio.mobileplayer.R;
 import com.wjustudio.mobileplayer.appBase.BaseActivity;
 import com.wjustudio.mobileplayer.utils.CommonUtil;
+import com.wjustudio.mobileplayer.utils.SystemUtil;
 import com.wjustudio.mobileplayer.view.adapter.MainPagerAdapter;
 import com.wjustudio.mobileplayer.view.fragment.AudioListFragment;
 import com.wjustudio.mobileplayer.view.fragment.VideoListFragment;
@@ -76,8 +77,8 @@ public class MainActivity extends BaseActivity {
         //初始化标签的高亮状态
         updateTabs(0);
         //初始化指示器为屏幕宽度的一半
-        HashMap<String, Integer> windowSize = CommonUtil.getWindowSize(MainActivity.this);
-        Integer width = windowSize.get(CommonUtil.WIDTH);
+        HashMap<String, Integer> windowSize = SystemUtil.getWindowSize(MainActivity.this);
+        Integer width = windowSize.get(SystemUtil.WIDTH);
         mIndicateLine.getLayoutParams().width = width / 2;
         mIndicateLine.requestLayout();
 
