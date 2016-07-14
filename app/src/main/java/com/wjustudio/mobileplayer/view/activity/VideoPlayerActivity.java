@@ -6,9 +6,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -16,7 +18,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.VideoView;
 
 import com.nineoldandroids.view.ViewPropertyAnimator;
 import com.wjustudio.mobileplayer.Bean.Video;
@@ -25,17 +26,20 @@ import com.wjustudio.mobileplayer.appBase.BaseActivity;
 import com.wjustudio.mobileplayer.utils.LogUtil;
 import com.wjustudio.mobileplayer.utils.SystemUtil;
 import com.wjustudio.mobileplayer.utils.TimeUtil;
+import com.wjustudio.mobileplayer.widget.CustomVideoView;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import static android.view.GestureDetector.SimpleOnGestureListener;
 
 /**
  * 作者： songwenju on 2016/7/4 08:43.
  * 邮箱： songwenju@outlook.com
  */
 public class VideoPlayerActivity extends BaseActivity {
-    private VideoView mVideoView;
+    private CustomVideoView mVideoView;
     private ImageView mVideoPause;
     private TextView mVideoName;
     private ImageView mButteryIcon;
@@ -43,6 +47,7 @@ public class VideoPlayerActivity extends BaseActivity {
     private TextView mSystemTime;
     private static final int UPDATE_SYSTEM_TIME = 0;
     private static final int UPDATE_POSITION = 1;
+    private static final int UPDATE_HIDE_PAN = 2;
     private SeekBar mSkVolume;
     private AudioManager mAudioMgr;
     private ImageView mVideoMute;
@@ -62,6 +67,9 @@ public class VideoPlayerActivity extends BaseActivity {
     private int mPosition;
     private LinearLayout mTopTab;
     private LinearLayout mBottomTab;
+    private GestureDetector mGestureDetector;
+    private boolean isShowPan = false;
+    private ImageView mVideoFullScreen;
 
     private class MyOnSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
         @Override
@@ -82,13 +90,19 @@ public class VideoPlayerActivity extends BaseActivity {
 
         @Override
         public void onStartTrackingTouch(SeekBar seekBar) {
-
+            //手指放在seekBar上
+            removeHideMsg();
         }
 
         @Override
         public void onStopTrackingTouch(SeekBar seekBar) {
-
+            //手指离开seekBar
+            sendHidePanMsg();
         }
+    }
+
+    private void sendHidePanMsg() {
+        mHandler.sendEmptyMessageDelayed(UPDATE_HIDE_PAN, 5000);
     }
 
     private class ButteryBroadcastReceiver extends BroadcastReceiver {
@@ -127,6 +141,9 @@ public class VideoPlayerActivity extends BaseActivity {
                     case UPDATE_POSITION:
                         updatePosition();
                         break;
+                    case UPDATE_HIDE_PAN:
+                        hideControlPan();
+                        break;
                 }
             }
         }
@@ -139,7 +156,7 @@ public class VideoPlayerActivity extends BaseActivity {
 
     @Override
     public void onInitView() {
-        mVideoView = (VideoView) findViewById(R.id.video_view);
+        mVideoView = (CustomVideoView) findViewById(R.id.video_view);
         mVideoPause = (ImageView) findViewById(R.id.iv_video_pause);
         mVideoName = (TextView) findViewById(R.id.tv_video_player_name);
         mButteryIcon = (ImageView) findViewById(R.id.iv_buttery_icon);
@@ -153,6 +170,7 @@ public class VideoPlayerActivity extends BaseActivity {
         mTotalPosition = (TextView) findViewById(R.id.tv_total_position);
         mTopTab = (LinearLayout) findViewById(R.id.ll_top_tab);
         mBottomTab = (LinearLayout) findViewById(R.id.ll_bottom_tab);
+        mVideoFullScreen = (ImageView) findViewById(R.id.iv_video_full_screen);
     }
 
     @Override
@@ -168,11 +186,12 @@ public class VideoPlayerActivity extends BaseActivity {
         updateSystemTime();
         MyOnSeekBarChangeListener onSeekBarChangeListener = new MyOnSeekBarChangeListener();
         mSkVolume.setOnSeekBarChangeListener(onSeekBarChangeListener);
-
+        mGestureDetector = new GestureDetector(mContext, new MySimpleOnGestureListener());
         //设置点击事件
         mVideoMute.setOnClickListener(this);
         mVideoPre.setOnClickListener(this);
         mVideoNext.setOnClickListener(this);
+        mVideoFullScreen.setOnClickListener(this);
 
         //设置音量变化的receiver
         filter = new IntentFilter();
@@ -182,18 +201,18 @@ public class VideoPlayerActivity extends BaseActivity {
 
         //设置播放的seekBar的时间随着播放进度变化
         mSkPlayerPosition.setOnSeekBarChangeListener(onSeekBarChangeListener);
-        initHiddenControl();
+        initHiddenPan();
     }
 
     /**
      * 初始化面板的显示
      */
-    private void initHiddenControl() {
+    private void initHiddenPan() {
         //使用getMeasureHeight获取高度
-        mTopTab.measure(0,0);
+        mTopTab.measure(0, 0);
         int measuredHeight = mTopTab.getMeasuredHeight();
         ViewPropertyAnimator.animate(mTopTab).translationY(-measuredHeight);
-        //使用getHeight获取高度
+        //使用getHeight获取高度,这个是在layout后调用
         mBottomTab.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
@@ -202,20 +221,29 @@ public class VideoPlayerActivity extends BaseActivity {
                 ViewPropertyAnimator.animate(mBottomTab).translationY(mBottomTab.getHeight());
             }
         });
-
+        isShowPan = false;
     }
 
 
     @Override
     protected void onInitData() {
-        Bundle bundleObject = getIntent().getExtras();
-
-        mVideoList = (ArrayList<Video>) bundleObject.getSerializable("videoList");
-        mPosition = bundleObject.getInt("position", -1);
-        LogUtil.i(this,"mVideoList.size:"+mVideoList.size());
-        LogUtil.i(this,"mVideoList.1:"+mVideoList.get(0));
-        LogUtil.i(this,"mPosition:"+mPosition);
-        playItem();
+        Uri uri = getIntent().getData();
+        if (uri != null){
+            //外部调用
+            mVideoView.setVideoURI(uri);
+            mVideoName.setText(uri.getPath());
+            mVideoPre.setEnabled(false);
+            mVideoNext.setEnabled(false);
+        }else {
+            //内部调用
+            Bundle bundleObject = getIntent().getExtras();
+            mVideoList = (ArrayList<Video>) bundleObject.getSerializable("videoList");
+            mPosition = bundleObject.getInt("position", -1);
+            LogUtil.i(this, "mVideoList.size:" + mVideoList.size());
+            LogUtil.i(this, "mVideoList.1:" + mVideoList.get(0));
+            LogUtil.i(this, "mPosition:" + mPosition);
+            playItem();
+        }
 //        mVideoView.setMediaController(new MediaController(this));
         mVideoPause.setOnClickListener(this);
         //初始化音量
@@ -253,7 +281,7 @@ public class VideoPlayerActivity extends BaseActivity {
 
     private void updatePreAndNextBtn() {
         mVideoPre.setEnabled(mPosition != 0);
-        mVideoNext.setEnabled(mPosition != mVideoList.size() -1);
+        mVideoNext.setEnabled(mPosition != mVideoList.size() - 1);
     }
 
     @Override
@@ -271,8 +299,35 @@ public class VideoPlayerActivity extends BaseActivity {
             case R.id.iv_video_next:
                 playNext();
                 break;
+            case R.id.iv_video_full_screen:
+                switchFullScreen();
+                break;
+
         }
     }
+
+    /**
+     * 切换全屏状态
+     */
+    private void switchFullScreen() {
+        int mDefaultH = mVideoView.getMeasuredHeight();
+        int mDefaultW = mVideoView.getMeasuredWidth();
+        mVideoView.switchFullScreen(mDefaultH, mDefaultW);
+        updateFullScreenBtn();
+    }
+
+    /**
+     * 更新是否是全屏的状态
+     */
+    private void updateFullScreenBtn() {
+        if (mVideoView.isFullSceen()){
+            mVideoFullScreen.setImageResource(R.drawable.btn_normal_screen_selector);
+        }else {
+            mVideoFullScreen.setImageResource(R.drawable.btn_full_screen_selector);
+
+        }
+    }
+
 
     /**
      * 播放下一曲
@@ -296,6 +351,7 @@ public class VideoPlayerActivity extends BaseActivity {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        mGestureDetector.onTouchEvent(event);
         //监听手势变化，去修改音量
         /*
             1.手指滑动屏幕的距离 = 当前的距离 - 压下时的距离
@@ -311,6 +367,7 @@ public class VideoPlayerActivity extends BaseActivity {
                 //取得当前亮度
                 mCurrentLight = SystemUtil.getCurrentLight(mContext);
                 LogUtil.i(this, "currentLight:" + mCurrentLight);
+                removeHideMsg();
                 break;
             case MotionEvent.ACTION_MOVE:
                 //当前手指的位置
@@ -335,15 +392,20 @@ public class VideoPlayerActivity extends BaseActivity {
                 }
                 break;
             case MotionEvent.ACTION_UP:
-                float endY = event.getY();
-
-                if (Math.abs(endY - mStartY) < 5) {
-                    //滑动距离较少时，认为是点击，暂停视频播放
-                    updatePauseStatus();
-                }
+//                float endY = event.getY();
+//
+//                if (Math.abs(endY - mStartY) < 5) {
+//                    //滑动距离较少时，认为是点击，暂停视频播放
+//                    updatePauseStatus();
+//                }
+                sendHidePanMsg();
                 break;
         }
         return super.onTouchEvent(event);
+    }
+
+    private void removeHideMsg() {
+        mHandler.removeMessages(UPDATE_HIDE_PAN);
     }
 
 
@@ -487,6 +549,9 @@ public class VideoPlayerActivity extends BaseActivity {
 
             //更新开始播放的时间
             updatePosition();
+
+            //更新全屏状态
+            updateFullScreenBtn();
         }
     }
 
@@ -520,4 +585,62 @@ public class VideoPlayerActivity extends BaseActivity {
             updatePauseIcon();
         }
     }
+
+    /**
+     * 手势监听，监听单击和双击事件
+     */
+    private class MySimpleOnGestureListener extends SimpleOnGestureListener {
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            switchPanShow();
+            return super.onSingleTapConfirmed(e);
+        }
+
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            //双击切换全屏
+            switchFullScreen();
+            return super.onDoubleTap(e);
+        }
+
+        @Override
+        public void onLongPress(MotionEvent e) {
+            //长按事件更新暂停事件
+            updatePauseStatus();
+            super.onLongPress(e);
+        }
+    }
+
+    /**
+     * 控制面板的显示和隐藏
+     */
+    private void switchPanShow() {
+
+        if (isShowPan) {
+            hideControlPan();
+        } else {
+            showControlPan();
+            sendHidePanMsg();
+        }
+
+    }
+
+    /**
+     * 隐藏控制面板
+     */
+    private void hideControlPan() {
+        ViewPropertyAnimator.animate(mTopTab).translationY(-mTopTab.getHeight());
+        ViewPropertyAnimator.animate(mBottomTab).translationY(mBottomTab.getHeight());
+        isShowPan = false;
+    }
+
+    /**
+     * 显示控制面板
+     */
+    private void showControlPan() {
+        ViewPropertyAnimator.animate(mTopTab).translationY(0);
+        ViewPropertyAnimator.animate(mBottomTab).translationY(0);
+        isShowPan = true;
+    }
+
 }
