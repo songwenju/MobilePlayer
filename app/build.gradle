@@ -27,4 +27,5 @@ dependencies {
     compile 'com.android.support:recyclerview-v7:24.0.0'
     compile 'com.google.code.gson:gson:2.2.4'
     compile 'com.nineoldandroids:library:2.4.0'
+    compile project(':vitamio')
 }

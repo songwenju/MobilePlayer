@@ -1,6 +1,7 @@
 package com.wjustudio.mobileplayer.widget;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.view.WindowManager;
@@ -17,7 +18,12 @@ public class CustomVideoView extends VideoView {
     private int mScreenW;
     private int mDefaultH;
     private int mDefaultW;
-    private boolean isFullSceen;
+    private boolean isFullScreen;
+    private MediaPlayer.OnBufferingUpdateListener mOnBufferingUpdateListener;
+
+    public void setOnBufferingUpdateListener(MediaPlayer.OnBufferingUpdateListener onBufferingUpdateListener) {
+        mOnBufferingUpdateListener = onBufferingUpdateListener;
+    }
 
     public CustomVideoView(Context context) {
         super(context);
@@ -70,7 +76,7 @@ public class CustomVideoView extends VideoView {
     public void switchFullScreen(int mDefaultH, int mDefaultW){
         this.mDefaultH = mDefaultH;
         this.mDefaultW = mDefaultW;
-        if (isFullSceen){
+        if (isFullScreen){
             getLayoutParams().width = this.mDefaultW;
             getLayoutParams().height = this.mDefaultH;
         }else {
@@ -79,14 +85,14 @@ public class CustomVideoView extends VideoView {
         }
         requestLayout();
 
-        isFullSceen = !isFullSceen;
+        isFullScreen = !isFullScreen;
     }
 
     /**
      * 判断当前是否是全屏
      * @return
      */
-    public boolean isFullSceen() {
-        return isFullSceen;
+    public boolean isFullScreen() {
+        return isFullScreen;
     }
 }

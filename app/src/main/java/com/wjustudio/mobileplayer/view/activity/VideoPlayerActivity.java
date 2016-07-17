@@ -1,12 +1,16 @@
 package com.wjustudio.mobileplayer.view.activity;
 
+import android.annotation.TargetApi;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -16,6 +20,7 @@ import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -70,6 +75,8 @@ public class VideoPlayerActivity extends BaseActivity {
     private GestureDetector mGestureDetector;
     private boolean isShowPan = false;
     private ImageView mVideoFullScreen;
+    private LinearLayout mIsLoading;
+    private ProgressBar mLoading;
 
     private class MyOnSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
         @Override
@@ -171,8 +178,12 @@ public class VideoPlayerActivity extends BaseActivity {
         mTopTab = (LinearLayout) findViewById(R.id.ll_top_tab);
         mBottomTab = (LinearLayout) findViewById(R.id.ll_bottom_tab);
         mVideoFullScreen = (ImageView) findViewById(R.id.iv_video_full_screen);
+        mIsLoading = (LinearLayout) findViewById(R.id.ll_is_loading);
+
+        mLoading = (ProgressBar) findViewById(R.id.pb_loading);
     }
 
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     protected void onSetViewData() {
         //注册相关的监听器
@@ -192,6 +203,10 @@ public class VideoPlayerActivity extends BaseActivity {
         mVideoPre.setOnClickListener(this);
         mVideoNext.setOnClickListener(this);
         mVideoFullScreen.setOnClickListener(this);
+
+        mVideoView.setOnBufferingUpdateListener(new OnBufferingUpdateListener());
+        mVideoView.setOnInfoListener(new OnInfoListener());
+        mVideoView.setOnErrorListener(new MyOnErrorListener());
 
         //设置音量变化的receiver
         filter = new IntentFilter();
@@ -227,6 +242,7 @@ public class VideoPlayerActivity extends BaseActivity {
 
     @Override
     protected void onInitData() {
+        mIsLoading.setVisibility(View.VISIBLE);
         Uri uri = getIntent().getData();
         if (uri != null){
             //外部调用
@@ -320,7 +336,7 @@ public class VideoPlayerActivity extends BaseActivity {
      * 更新是否是全屏的状态
      */
     private void updateFullScreenBtn() {
-        if (mVideoView.isFullSceen()){
+        if (mVideoView.isFullScreen()){
             mVideoFullScreen.setImageResource(R.drawable.btn_normal_screen_selector);
         }else {
             mVideoFullScreen.setImageResource(R.drawable.btn_full_screen_selector);
@@ -536,6 +552,7 @@ public class VideoPlayerActivity extends BaseActivity {
     private class OnPreparedListener implements MediaPlayer.OnPreparedListener {
         @Override
         public void onPrepared(MediaPlayer mediaPlayer) {
+            mIsLoading.setVisibility(View.GONE);
             //开始播放
             mVideoView.start();
             //更新暂停按钮
@@ -643,4 +660,48 @@ public class VideoPlayerActivity extends BaseActivity {
         isShowPan = true;
     }
 
+    private class OnBufferingUpdateListener implements MediaPlayer.OnBufferingUpdateListener {
+        @Override
+        public void onBufferingUpdate(MediaPlayer mediaPlayer, int i) {
+            //视频缓冲进度发生变化时会调用此方法
+            // 计算百分比
+            float bufferPercent = i / 100f;
+            //计算缓冲时间
+            int bufferTime = (int) (bufferPercent * mSkPlayerPosition.getMax());
+            //更新第二进度条
+            mSkPlayerPosition.setSecondaryProgress(bufferTime);
+        }
+    }
+
+    private class OnInfoListener implements MediaPlayer.OnInfoListener {
+        @Override
+        public boolean onInfo(MediaPlayer mediaPlayer, int what, int extral) {
+            switch (what){
+                case MediaPlayer.MEDIA_INFO_BUFFERING_START:
+                    mLoading.setVisibility(View.VISIBLE);
+                break;
+                case MediaPlayer.MEDIA_INFO_BUFFERING_END:
+                    mLoading.setVisibility(View.GONE);
+                    break;
+            }
+            return false;
+        }
+    }
+
+    private class MyOnErrorListener implements MediaPlayer.OnErrorListener {
+        @Override
+        public boolean onError(MediaPlayer mediaPlayer, int what, int extra) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(VideoPlayerActivity.this);
+            builder.setTitle("提示");
+            builder.setMessage("该视频无法播放");
+            builder.setPositiveButton("退出播放", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    finish();
+                }
+            });
+            builder.show();
+            return false;
+        }
+    }
 }

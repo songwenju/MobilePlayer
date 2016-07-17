@@ -15,7 +15,7 @@ import com.wjustudio.mobileplayer.R;
 import com.wjustudio.mobileplayer.appBase.BaseFragment;
 import com.wjustudio.mobileplayer.db.MobileAsyncQueryHandler;
 import com.wjustudio.mobileplayer.utils.LogUtil;
-import com.wjustudio.mobileplayer.view.activity.VideoPlayerActivity;
+import com.wjustudio.mobileplayer.view.activity.VitamioPlayerActivity;
 import com.wjustudio.mobileplayer.view.adapter.VideoListAdapter;
 
 import java.util.ArrayList;
@@ -34,7 +34,8 @@ public class VideoListFragment extends BaseFragment {
             //Video video = Video.instanceFromCursor(cursor);
             ArrayList<Video> videoList = Video.getVideoList(cursor);
             //跳转到播放界面
-            Intent intent = new Intent(mContext,VideoPlayerActivity.class);
+//            Intent intent = new Intent(mContext,VideoPlayerActivity.class);
+            Intent intent = new Intent(mContext,VitamioPlayerActivity.class);
             Bundle bundle = new Bundle();
             bundle.putSerializable("videoList",videoList);
             bundle.putInt("position",position);
