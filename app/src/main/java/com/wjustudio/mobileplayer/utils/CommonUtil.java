@@ -378,5 +378,12 @@ public class CommonUtil {
         return p1.matcher(str).matches() ;
     }
 
-
+    /**
+     * 格式化名称
+     * @param name
+     * @return
+     */
+    public static String formatName(String name){
+        return name.substring(0,name.indexOf('.'));
+    }
 }
