@@ -82,6 +82,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".view.activity.AudioPlayerActivity"/>
+        <service android:name=".service.AudioPlayerService"/>
     </application>
 
 </manifest>
