@@ -21,13 +21,10 @@
         android:layout_centerHorizontal="true"
         android:text="歌曲名"/>
     <!--歌词-->
-    <TextView
+    <com.wjustudio.mobileplayer.widget.LyricView
         android:id="@+id/tv_audio_lyric"
-        android:textColor="@color/white"
-        android:textSize="18sp"
         android:layout_below="@id/tv_audio_artist"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="歌词"/>
+ />
 </RelativeLayout>

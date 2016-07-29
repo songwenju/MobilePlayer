@@ -8,16 +8,25 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.drawable.AnimationDrawable;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.wjustudio.mobileplayer.Bean.Audio;
 import com.wjustudio.mobileplayer.R;
 import com.wjustudio.mobileplayer.appBase.BaseActivity;
+import com.wjustudio.mobileplayer.config.AppConstant;
+import com.wjustudio.mobileplayer.model.LyricLoader;
 import com.wjustudio.mobileplayer.service.AudioPlayerService;
 import com.wjustudio.mobileplayer.utils.LogUtil;
+import com.wjustudio.mobileplayer.utils.TimeUtil;
+import com.wjustudio.mobileplayer.widget.LyricView;
+
+import java.io.File;
 
 /**
  * 作者： songwenju on 2016/7/18 08:01.
@@ -25,6 +34,8 @@ import com.wjustudio.mobileplayer.utils.LogUtil;
  */
 public class AudioPlayerActivity extends BaseActivity {
 
+    private static final int UPDATE_DURATION = 0;
+    private static final int UPDATE_LYRIC_ROLL = 1;
     private AudioServiceConnection mServiceConnection;
     private ImageView mAudioList;
     private ImageView mAudioPre;
@@ -35,8 +46,26 @@ public class AudioPlayerActivity extends BaseActivity {
     private BroadcastReceiver mAudioBroadcastReceiver;
     private TextView mAudioTitle;
     private TextView mAudioArtist;
-    private TextView mAudioLyric;
+    private LyricView mAudioLyric;
     private ImageView mIvWave;
+    private TextView mAudioDuration;
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case UPDATE_DURATION:
+                    updateDuration();
+                    break;
+                case UPDATE_LYRIC_ROLL:
+                    updateLyricRoll();
+                    break;
+
+            }
+        }
+
+    };
+    private SeekBar mSkAudioPosition;
 
     @Override
     public int onBindLayout() {
@@ -53,9 +82,13 @@ public class AudioPlayerActivity extends BaseActivity {
 
         mAudioTitle = (TextView) findViewById(R.id.tv_audio_title);
         mAudioArtist = (TextView) findViewById(R.id.tv_audio_artist);
-        mAudioLyric = (TextView) findViewById(R.id.tv_audio_lyric);
+        mAudioLyric = (LyricView) findViewById(R.id.tv_audio_lyric);
 
         mIvWave = (ImageView) findViewById(R.id.iv_wave);
+
+        mAudioDuration = (TextView) findViewById(R.id.tv_audio_duration);
+        mSkAudioPosition = (SeekBar) findViewById(R.id.sk_audio_position);
+
     }
 
     @Override
@@ -65,6 +98,7 @@ public class AudioPlayerActivity extends BaseActivity {
         mAudioPause.setOnClickListener(this);
         mAudioNext.setOnClickListener(this);
         mAudioOrder.setOnClickListener(this);
+        mSkAudioPosition.setOnSeekBarChangeListener(new OnAudioSeekBarChangeListener());
     }
 
     @Override
@@ -78,7 +112,9 @@ public class AudioPlayerActivity extends BaseActivity {
         startService(intent);
 
         mAudioBroadcastReceiver = new AudioBroadcastReceiver();
-        IntentFilter audioFilter = new IntentFilter("com.wjuStudio.audioPlayerService.startPlay");
+        IntentFilter audioFilter = new IntentFilter();
+        audioFilter.addAction(AppConstant.AUDIO_END_ACTION);
+        audioFilter.addAction(AppConstant.AUDIO_START_ACTION);
         registerReceiver(mAudioBroadcastReceiver, audioFilter);
 
         //开启示波器动画
@@ -95,21 +131,64 @@ public class AudioPlayerActivity extends BaseActivity {
                 updatePlayerState();
                 break;
             case R.id.iv_audio_pre:
+                playPre();
                 break;
             case R.id.iv_audio_next:
+                playNext();
                 break;
             case R.id.iv_audio_order:
+                switchPlayMode();
                 break;
         }
+    }
+
+    /**
+     * 切换播放模式
+     */
+    private void switchPlayMode() {
+        mServiceBind.switchPlayMode();
+        updatePlayModeIcon();
+    }
+
+    /**
+     * 更新播放顺序的图标
+     */
+    private void updatePlayModeIcon() {
+        int mode = mServiceBind.getCurrentPlayMode();
+        switch (mode) {
+            case AudioPlayerService.PLAY_ALL_REPEAT:
+                mAudioOrder.setImageResource(R.drawable.audio_play_all_repeat_selector);
+                break;
+            case AudioPlayerService.PLAY_RANDOM:
+                mAudioOrder.setImageResource(R.drawable.audio_play_random_selector);
+                break;
+            case AudioPlayerService.PLAY_SINGLE_REPEAT:
+                mAudioOrder.setImageResource(R.drawable.audio_play_single_repeat_selector);
+                break;
+        }
+    }
+
+    /**
+     * 播放下一首
+     */
+    private void playNext() {
+        mServiceBind.playNext();
+    }
+
+    /**
+     * 播放上一首
+     */
+    private void playPre() {
+        mServiceBind.playPre();
     }
 
     /**
      * 更新播放的状态
      */
     private void updatePlayerState() {
-        if (mServiceBind.isPlaying()){
+        if (mServiceBind.isPlaying()) {
             mServiceBind.pause();
-        }else {
+        } else {
             mServiceBind.start();
         }
 
@@ -120,9 +199,9 @@ public class AudioPlayerActivity extends BaseActivity {
      * 更新播放的图标
      */
     private void updatePlayIcon() {
-        if (mServiceBind.isPlaying()){
+        if (mServiceBind.isPlaying()) {
             mAudioPause.setImageResource(R.drawable.audio_pause_selector);
-        }else {
+        } else {
             mAudioPause.setImageResource(R.drawable.audio_play_selector);
         }
     }
@@ -149,21 +228,89 @@ public class AudioPlayerActivity extends BaseActivity {
         mServiceBind.stop();
         unbindService(mServiceConnection);
         unregisterReceiver(mAudioBroadcastReceiver);
+        mHandler.removeCallbacksAndMessages(null);
     }
 
     private class AudioBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            //service 开始播放会发送一个广播
-            Audio audio = (Audio) intent.getSerializableExtra("audioItem");
-            LogUtil.i(this,"AudioBroadcastReceiver.onReceive: audio"+audio.toString());
-            //更新标题
-            mAudioTitle.setText(audio.name);
-            //更新一下暂停按钮
-            updatePlayIcon();
+            String action = intent.getAction();
+            if (action.equals(AppConstant.AUDIO_START_ACTION)) {
+                //service 开始播放会发送一个广播
+                Audio audio = (Audio) intent.getSerializableExtra("audioItem");
+                LogUtil.i(this, "AudioBroadcastReceiver.onReceive: audio" + audio.toString());
+                //更新标题
+                mAudioTitle.setText(audio.name);
+                //更新一下暂停按钮
+                updatePlayIcon();
 
-            //更新一下歌手名
-            mAudioArtist.setText(audio.artist);
+                //更新一下歌手名
+                mAudioArtist.setText(audio.artist);
+                //设置SeekBar的最大值
+                mSkAudioPosition.setMax(mServiceBind.getDuration());
+                updateDuration();
+
+                updatePlayModeIcon();
+//                File file = new File(Environment.getExternalStorageDirectory(),"Download/test/audio/"+
+//                audio.name+".lrc");
+                File file = LyricLoader.loaderFile(audio.name);
+                mAudioLyric .setLyricFile(file);
+                updateLyricRoll();
+            } else if (action.equals(AppConstant.AUDIO_END_ACTION)) {
+                mAudioDuration.setText(mServiceBind.getDuration() + "/" + mServiceBind.getDuration());
+                mAudioPause.setImageResource(R.drawable.audio_play_selector);
+            }
+        }
+    }
+
+    /**
+     * 更新时间
+     */
+    private void updateDuration() {
+        int duration = mServiceBind.getDuration();
+        updatePosition(duration);
+        mHandler.sendEmptyMessageDelayed(UPDATE_DURATION, 500);
+    }
+
+
+    /**
+     * 更新歌词高亮行
+     */
+    private void updateLyricRoll(){
+        mAudioLyric.rollLyric(mServiceBind.getCurrentPotion(),mServiceBind.getDuration());
+        mHandler.sendEmptyMessageDelayed(UPDATE_LYRIC_ROLL,100);
+    }
+    /**
+     * 更新进度
+     *
+     * @param duration
+     */
+    private void updatePosition(int duration) {
+        int currentPotion = mServiceBind.getCurrentPotion();
+        String durationStr = TimeUtil.formatTime(duration);
+        String currentPositionStr = TimeUtil.formatTime(currentPotion);
+        mAudioDuration.setText(currentPositionStr + "/" + durationStr);
+        mSkAudioPosition.setProgress(currentPotion);
+    }
+
+    private class OnAudioSeekBarChangeListener implements SeekBar.OnSeekBarChangeListener {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+            if (!b) {
+                return;
+            }
+            mServiceBind.seekTo(i);
+            updatePosition(i);
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
         }
     }
 }

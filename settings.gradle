@@ -1,1 +1,1 @@
-include ':app', ':netplayersender', ':vitamio'
+include ':app', ':netplayersender', ':vitamio', ':notificationdemo'
